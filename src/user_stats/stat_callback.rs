@@ -111,3 +111,42 @@ unsafe impl Callback for UserAchievementStored {
         }
     }
 }
+
+/// Result of a request to store the achievements on the server, or an "indicate progress" call.
+/// If both `current_progress` and `max_progress` are zero, that means the achievement has been
+/// fully unlocked.
+///
+/// # Example
+///
+/// ```no_run
+/// # use steamworks::*;
+/// # let (client, single) = steamworks::Client::init().unwrap();
+/// let callback_handle = client.register_callback(|val: UserAchievementStored| {
+///     // ...
+/// });
+/// ```
+#[derive(Clone, Debug)]
+pub struct UserAchievementIconFetched {
+    pub game_id: GameId,
+    pub achievement_name: String,
+    /// Current progress towards the achievement.
+    pub achieved: bool,
+    /// The total amount of progress required to unlock.
+    pub icon_handle: i32,
+}
+
+unsafe impl Callback for UserAchievementIconFetched {
+    const ID: i32 = CALLBACK_BASE_ID + 4;
+    const SIZE: i32 = std::mem::size_of::<sys::UserAchievementStored_t>() as i32;
+
+    unsafe fn from_raw(raw: *mut c_void) -> Self {
+        let val = &mut *(raw as *mut sys::UserAchievementIconFetched_t);
+        let name = CStr::from_ptr(val.m_rgchAchievementName.as_ptr()).to_owned();
+        Self {
+            game_id: GameId(val.m_nGameID.__bindgen_anon_1.m_ulGameID),
+            achievement_name: name.into_string().unwrap(),
+            achieved: val.m_bAchieved,
+            icon_handle: val.m_nIconHandle,
+        }
+    }
+}
